@@ -1,0 +1,46 @@
+import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import type { BackendRequest } from '@frontend-demo/shared';
+import { logger } from '@frontend-demo/shared';
+import { invokeBackend } from './backend-client.js';
+
+const log = logger.child({ lambda: 'middleware' });
+
+export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
+  const userId = event.requestContext.authorizer?.userId as string;
+  log.info({ path: event.path, method: event.httpMethod, userId }, 'Request received');
+
+  try {
+    const request: BackendRequest = {
+      operation: 'queryItems',
+      params: {
+        path: event.path,
+        queryParams: event.queryStringParameters ?? {},
+        body: event.body ? JSON.parse(event.body) : undefined,
+      },
+      requesterId: userId,
+    };
+
+    const response = await invokeBackend(request);
+
+    if (!response.success) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: response.error }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(response.data),
+    };
+  } catch (err) {
+    log.error({ err }, 'Middleware error');
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Internal server error' }),
+    };
+  }
+}

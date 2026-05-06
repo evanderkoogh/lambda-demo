@@ -1,0 +1,20 @@
+{
+  "name": "frontend-demo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "tsc --build && pnpm --filter @frontend-demo/infra typecheck",
+    "dev": "concurrently \"docker-compose up\" \"sleep 3 && pnpm seed\" \"sleep 4 && pnpm local:api\"",
+    "local:api": "cd infra && pnpm cdk synth --quiet && sam local start-api --template cdk.out/FrontendDemoStack.template.json",
+    "seed": "tsx scripts/seed-dynamo.ts",
+    "deploy": "bash scripts/deploy.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

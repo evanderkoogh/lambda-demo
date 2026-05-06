@@ -1,0 +1,26 @@
+{
+  "name": "@frontend-demo/infra",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "bin/app.js",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --require-approval never",
+    "destroy": "cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.170.0",
+    "constructs": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "aws-cdk": "^2.170.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}
