@@ -4,8 +4,8 @@
   "scripts": {
     "build": "pnpm -r build",
     "typecheck": "tsc --build && pnpm --filter @frontend-demo/infra typecheck",
-    "dev": "concurrently \"docker-compose up\" \"sleep 3 && pnpm seed\" \"sleep 4 && pnpm local:api\"",
-    "local:api": "cd infra && pnpm cdk synth --quiet && sam local start-api --template cdk.out/FrontendDemoStack.template.json",
+    "dev": "bash scripts/start-local.sh",
+    "test:api": "tsx --env-file=.env.local scripts/test-api.ts",
     "seed": "tsx scripts/seed-dynamo.ts",
     "deploy": "bash scripts/deploy.sh"
   },

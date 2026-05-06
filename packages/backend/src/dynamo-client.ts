@@ -1,11 +1,12 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
-const isLocal = process.env.AWS_SAM_LOCAL === 'true' || process.env.DYNAMODB_ENDPOINT != null;
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT || '';
+const isLocal = process.env.AWS_SAM_LOCAL === 'true' || dynamoEndpoint !== '';
 
 const ddbClient = new DynamoDBClient(
   isLocal
-    ? { endpoint: process.env.DYNAMODB_ENDPOINT ?? 'http://localhost:8000', region: 'us-east-1' }
+    ? { endpoint: dynamoEndpoint || 'http://localhost:8000', region: 'us-east-1' }
     : {},
 );
 

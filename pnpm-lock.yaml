@@ -89,6 +89,9 @@ importers:
       '@aws-sdk/client-lambda':
         specifier: ^3.0.0
         version: 3.1043.0
+      '@frontend-demo/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@frontend-demo/shared':
         specifier: workspace:*
         version: link:../shared

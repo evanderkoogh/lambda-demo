@@ -10,15 +10,13 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
   log.info({ path: event.path, method: event.httpMethod, userId }, 'Request received');
 
   try {
-    const request: BackendRequest = {
-      operation: 'queryItems',
-      params: {
-        path: event.path,
-        queryParams: event.queryStringParameters ?? {},
-        body: event.body ? JSON.parse(event.body) : undefined,
-      },
-      requesterId: userId,
-    };
+    // Route /items/{id} → getItem, /items → listItems
+    const pathParts = event.path.replace(/^\//, '').split('/');
+    const itemId = pathParts[1]; // present for /items/{id}
+
+    const request: BackendRequest = itemId
+      ? { operation: 'getItem', params: { pk: itemId }, requesterId: userId }
+      : { operation: 'listItems', params: { limit: Number(event.queryStringParameters?.limit ?? 20) }, requesterId: userId };
 
     const response = await invokeBackend(request);
 

@@ -45,6 +45,10 @@ async function seedItems() {
   }
 }
 
-await createTable();
-await seedItems();
-console.log('Seed complete');
+async function main() {
+  await createTable();
+  await seedItems();
+  console.log('Seed complete');
+}
+
+main().catch((err) => { console.error(err); process.exit(1); });

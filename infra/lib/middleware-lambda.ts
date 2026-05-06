@@ -25,6 +25,8 @@ export class MiddlewareLambdaConstruct extends Construct {
         BACKEND_FUNCTION_NAME: props.backendFn.functionName,
         SERVICE_NAME: 'middleware',
         NODE_OPTIONS: '--enable-source-maps',
+        DYNAMODB_ENDPOINT: '',
+        TABLE_NAME: '',
       },
       bundling: {
         externalModules: ['@aws-sdk/*'],

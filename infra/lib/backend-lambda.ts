@@ -31,6 +31,7 @@ export class BackendLambdaConstruct extends Construct {
         TABLE_NAME: this.table.tableName,
         SERVICE_NAME: 'backend',
         NODE_OPTIONS: '--enable-source-maps',
+        DYNAMODB_ENDPOINT: '',
       },
       bundling: {
         externalModules: ['@aws-sdk/*'],
