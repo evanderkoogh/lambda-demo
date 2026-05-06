@@ -30,9 +30,13 @@ async function get(path: string, token: string): Promise<unknown> {
   return body;
 }
 
-const token = makeJwt(JWT_SECRET);
-console.log(`Base URL : ${BASE_URL}`);
-console.log(`Token    : ${token.slice(0, 40)}…`);
+async function main() {
+  const token = makeJwt(JWT_SECRET);
+  console.log(`Base URL : ${BASE_URL}`);
+  console.log(`Token    : ${token.slice(0, 40)}…`);
 
-await get('/items', token);
-await get(`/items/${ITEM_ID}`, token);
+  await get('/items', token);
+  await get(`/items/${ITEM_ID}`, token);
+}
+
+main().catch((err) => { console.error(err); process.exit(1); });
