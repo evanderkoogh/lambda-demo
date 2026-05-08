@@ -1,13 +1,16 @@
 import { DynamoDBClient, CreateTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 
-const TABLE_NAME = 'frontend-demo-table';
+const TABLE_NAME = process.env.TABLE_NAME ?? 'frontend-demo-table';
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT ?? '';
 
-const client = new DynamoDBClient({
-  endpoint: 'http://localhost:8000',
-  region: 'us-east-1',
-  credentials: { accessKeyId: 'local', secretAccessKey: 'local' },
-});
+// Only use a local endpoint when DYNAMODB_ENDPOINT is explicitly set.
+// When not set, connect to real AWS DynamoDB.
+const client = new DynamoDBClient(
+  dynamoEndpoint
+    ? { endpoint: dynamoEndpoint, region: 'us-east-1', credentials: { accessKeyId: 'local', secretAccessKey: 'local' } }
+    : { region: process.env.AWS_DEFAULT_REGION ?? 'ap-southeast-2' },
+);
 const docClient = DynamoDBDocumentClient.from(client);
 
 async function createTable() {

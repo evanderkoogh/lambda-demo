@@ -7,7 +7,8 @@
     "dev": "bash scripts/start-local.sh",
     "test:api": "tsx --env-file=.env.local scripts/test-api.ts",
     "test:api:aws": "tsx --env-file=.env.local scripts/test-api.ts --aws",
-    "seed": "tsx scripts/seed-dynamo.ts",
+    "seed": "DYNAMODB_ENDPOINT=http://localhost:8000 tsx scripts/seed-dynamo.ts",
+    "seed:aws": "PATH=/opt/homebrew/bin:$PATH tsx scripts/seed-dynamo.ts",
     "aws:deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
