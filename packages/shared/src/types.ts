@@ -19,7 +19,8 @@ export interface BackendRequest {
   operation: 'getItem' | 'queryItems' | 'listItems';
   params: Record<string, unknown>;
   requesterId: string;
-  traceContext?: Record<string, string>;
+  // Named 'headers' so ADOT's Lambda instrumentation can extract W3C traceparent automatically
+  headers?: Record<string, string>;
 }
 
 export interface BackendResponse<T = unknown> {
