@@ -9,13 +9,42 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 
 let _provider: NodeTracerProvider | undefined;
+let _adotInitialized = false;
 
 export function initTracer(): Tracer {
   const serviceName = process.env.OTEL_SERVICE_NAME ?? process.env.SERVICE_NAME ?? 'unknown';
 
   // When running under the ADOT Lambda layer the OTel SDK is already initialised
-  // by the wrapper before our handler runs — just get a tracer from it.
+  // by the wrapper before our handler runs. Register a filtered HttpInstrumentation
+  // so Lambda-internal HTTP (runtime API, AWS SDK transport) is suppressed while
+  // real outbound HTTP calls are still captured. ADOT's default http instrumentation
+  // must be disabled via OTEL_NODE_DISABLED_INSTRUMENTATIONS=http.
   if (process.env.AWS_LAMBDA_EXEC_WRAPPER) {
+    if (!_adotInitialized) {
+      _adotInitialized = true;
+      registerInstrumentations({
+      instrumentations: [
+        new HttpInstrumentation({
+          ignoreOutgoingRequestHook: (options) => {
+            const hostname =
+              typeof options === 'string'
+                ? new URL(options).hostname
+                : (options.hostname ?? '');
+            // Suppress Lambda runtime (127.0.0.1) and AWS service calls
+            // (AWS SDK calls are already captured by AwsInstrumentation).
+            return (
+              hostname === '127.0.0.1' ||
+              hostname === 'localhost' ||
+              hostname.endsWith('.amazonaws.com')
+            );
+          },
+          ignoreIncomingRequestHook: (req) =>
+            // Suppress Lambda Runtime API paths
+            req.url?.startsWith('/2018-06-01/runtime/') ?? false,
+        }),
+      ],
+      });
+    }
     return trace.getTracer(serviceName);
   }
 

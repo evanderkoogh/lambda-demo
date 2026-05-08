@@ -1,9 +1,9 @@
 import type { BackendRequest, BackendResponse } from '@frontend-demo/shared';
-import { logger, NotFoundError, initTracer, flushTracer, propagation, context, SpanStatusCode } from '@frontend-demo/shared';
+import { logger, NotFoundError, initTracer, propagation, context, trace, SpanStatusCode } from '@frontend-demo/shared';
 import { getItem, queryItems, listItems } from './dynamo-client.js';
 
 const log = logger.child({ lambda: 'backend' });
-const tracer = initTracer();
+initTracer();
 
 export async function handler(event: BackendRequest): Promise<BackendResponse> {
   log.info({ operation: event.operation, requesterId: event.requesterId }, 'Backend invoked');
@@ -13,54 +13,51 @@ export async function handler(event: BackendRequest): Promise<BackendResponse> {
     ? propagation.extract(context.active(), event.traceContext)
     : context.active();
 
-  return context.with(parentContext, () =>
-    tracer.startActiveSpan('backend.handler', async (span) => {
-      try {
-        span.setAttribute('backend.operation', event.operation);
-        span.setAttribute('user.id', event.requesterId);
+  const span = trace.getActiveSpan();
 
-        switch (event.operation) {
-          case 'getItem': {
-            const pk = event.params.pk as string;
-            span.setAttribute('dynamo.pk', pk);
-            const item = await getItem(pk);
-            if (!item) throw new NotFoundError(`Item ${pk}`);
-            span.setStatus({ code: SpanStatusCode.OK });
-            return { success: true, data: item };
-          }
+  return context.with(parentContext, async () => {
+    try {
+      span?.setAttribute('backend.operation', event.operation);
+      span?.setAttribute('user.id', event.requesterId);
 
-          case 'queryItems': {
-            const pk = event.params.pk as string;
-            const limit = (event.params.limit as number) ?? 20;
-            span.setAttribute('dynamo.pk', pk);
-            const items = await queryItems(pk, limit);
-            span.setStatus({ code: SpanStatusCode.OK });
-            return { success: true, data: items };
-          }
-
-          case 'listItems': {
-            const limit = (event.params.limit as number) ?? 20;
-            const items = await listItems(limit);
-            span.setStatus({ code: SpanStatusCode.OK });
-            return { success: true, data: items };
-          }
-
-          default:
-            span.setStatus({ code: SpanStatusCode.ERROR, message: 'Unknown operation' });
-            return { success: false, error: `Unknown operation: ${(event as BackendRequest).operation}` };
+      switch (event.operation) {
+        case 'getItem': {
+          const pk = event.params.pk as string;
+          span?.setAttribute('dynamo.pk', pk);
+          const item = await getItem(pk);
+          if (!item) throw new NotFoundError(`Item ${pk}`);
+          span?.setStatus({ code: SpanStatusCode.OK });
+          return { success: true, data: item };
         }
-      } catch (err: unknown) {
-        if (err instanceof NotFoundError) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
-          return { success: false, error: err.message };
+
+        case 'queryItems': {
+          const pk = event.params.pk as string;
+          const limit = (event.params.limit as number) ?? 20;
+          span?.setAttribute('dynamo.pk', pk);
+          const items = await queryItems(pk, limit);
+          span?.setStatus({ code: SpanStatusCode.OK });
+          return { success: true, data: items };
         }
-        log.error({ err }, 'Backend error');
-        span.setStatus({ code: SpanStatusCode.ERROR, message: 'Internal error' });
-        return { success: false, error: 'Internal error' };
-      } finally {
-        span.end();
-        await flushTracer();
+
+        case 'listItems': {
+          const limit = (event.params.limit as number) ?? 20;
+          const items = await listItems(limit);
+          span?.setStatus({ code: SpanStatusCode.OK });
+          return { success: true, data: items };
+        }
+
+        default:
+          span?.setStatus({ code: SpanStatusCode.ERROR, message: 'Unknown operation' });
+          return { success: false, error: `Unknown operation: ${(event as BackendRequest).operation}` };
       }
-    }),
-  );
+    } catch (err: unknown) {
+      if (err instanceof NotFoundError) {
+        span?.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
+        return { success: false, error: err.message };
+      }
+      log.error({ err }, 'Backend error');
+      span?.setStatus({ code: SpanStatusCode.ERROR, message: 'Internal error' });
+      return { success: false, error: 'Internal error' };
+    }
+  });
 }

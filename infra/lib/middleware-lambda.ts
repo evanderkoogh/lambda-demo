@@ -40,6 +40,7 @@ export class MiddlewareLambdaConstruct extends Construct {
         AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-handler',
         OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'https://api.honeycomb.io/v1/traces',
         OTEL_EXPORTER_OTLP_HEADERS: `x-honeycomb-team=${props.honeycombApiKey}`,
+        OTEL_NODE_DISABLED_INSTRUMENTATIONS: 'http',
       },
       timeout: cdk.Duration.seconds(15),
       bundling: {
