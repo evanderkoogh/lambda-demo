@@ -10,6 +10,15 @@ error()   { echo -e "${RED}[deploy]${NC} $*" >&2; }
 # ── Ensure Homebrew aws takes precedence over asdf shim ───────────────────────
 export PATH="/opt/homebrew/bin:$PATH"
 
+# ── Load .env.local if present (env vars already set take precedence) ──────────
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ -f "$ROOT/.env.local" ]]; then
+  set -o allexport
+  # shellcheck disable=SC1090
+  source "$ROOT/.env.local"
+  set +o allexport
+fi
+
 # ── Pre-flight checks ──────────────────────────────────────────────────────────
 info "Running pre-flight checks..."
 
