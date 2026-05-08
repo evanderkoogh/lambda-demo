@@ -11,7 +11,14 @@ import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 let _provider: NodeTracerProvider | undefined;
 
 export function initTracer(): Tracer {
-  const serviceName = process.env.SERVICE_NAME ?? 'unknown';
+  const serviceName = process.env.OTEL_SERVICE_NAME ?? process.env.SERVICE_NAME ?? 'unknown';
+
+  // When running under the ADOT Lambda layer the OTel SDK is already initialised
+  // by the wrapper before our handler runs — just get a tracer from it.
+  if (process.env.AWS_LAMBDA_EXEC_WRAPPER) {
+    return trace.getTracer(serviceName);
+  }
+
   if (_provider) return trace.getTracer(serviceName);
 
   const exporter = new OTLPTraceExporter({
@@ -40,7 +47,10 @@ export function initTracer(): Tracer {
 }
 
 export async function flushTracer(): Promise<void> {
-  // Best-effort flush with a short timeout so Lambda doesn't stall locally
+  // ADOT Lambda layer handles flushing after the handler returns.
+  if (process.env.AWS_LAMBDA_EXEC_WRAPPER) return;
+
+  // Best-effort flush with a short timeout so Lambda doesn't stall locally.
   await Promise.race([
     _provider?.forceFlush() ?? Promise.resolve(),
     new Promise<void>((resolve) => setTimeout(resolve, 500)),

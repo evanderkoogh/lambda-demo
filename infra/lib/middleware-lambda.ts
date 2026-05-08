@@ -18,23 +18,34 @@ export class MiddlewareLambdaConstruct extends Construct {
   constructor(scope: Construct, id: string, props: MiddlewareLambdaProps) {
     super(scope, id);
 
+    const adotLayer = lambda.LayerVersion.fromLayerVersionArn(
+      this, 'AdotLayer',
+      'arn:aws:lambda:ap-southeast-2:901920570463:layer:aws-otel-nodejs-amd64-ver-1-30-2:1',
+    );
+
     this.fn = new NodejsFunction(this, 'Function', {
       functionName: 'frontend-demo-middleware',
       entry: path.join(__dirname, '../../packages/middleware/src/index.ts'),
       handler: 'handler',
       runtime: lambda.Runtime.NODEJS_22_X,
+      layers: [adotLayer],
       environment: {
         BACKEND_FUNCTION_NAME: props.backendFn.functionName,
         HONEYCOMB_API_KEY: props.honeycombApiKey,
         SERVICE_NAME: 'middleware',
+        OTEL_SERVICE_NAME: 'middleware',
         NODE_OPTIONS: '--enable-source-maps',
         DYNAMODB_ENDPOINT: '',
         TABLE_NAME: '',
+        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-handler',
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'https://api.honeycomb.io/v1/traces',
+        OTEL_EXPORTER_OTLP_HEADERS: `x-honeycomb-team=${props.honeycombApiKey}`,
       },
       timeout: cdk.Duration.seconds(15),
       bundling: {
         externalModules: ['@aws-sdk/*'],
         sourceMap: true,
+        footer: ';module.exports = Object.assign({}, module.exports);',
       },
     });
 
