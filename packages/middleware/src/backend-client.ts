@@ -5,6 +5,13 @@ import { BackendInvocationError } from '@frontend-demo/shared';
 const IS_LOCAL = process.env.AWS_SAM_LOCAL === 'true';
 const BACKEND_FUNCTION_NAME = process.env.BACKEND_FUNCTION_NAME!;
 
+// Lazy-initialized so the client is created after OTel instrumentation is set up.
+let _lambdaClient: LambdaClient | undefined;
+function getLambdaClient(): LambdaClient {
+  _lambdaClient ??= new LambdaClient({});
+  return _lambdaClient;
+}
+
 export async function invokeBackend<T>(request: BackendRequest): Promise<BackendResponse<T>> {
   // In SAM local there is no Lambda invoke endpoint, so call the handler directly.
   if (IS_LOCAL) {
@@ -12,8 +19,7 @@ export async function invokeBackend<T>(request: BackendRequest): Promise<Backend
     return handler(request) as Promise<BackendResponse<T>>;
   }
 
-  const client = new LambdaClient({});
-  const result = await client.send(
+  const result = await getLambdaClient().send(
     new InvokeCommand({
       FunctionName: BACKEND_FUNCTION_NAME,
       InvocationType: 'RequestResponse',
