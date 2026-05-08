@@ -2,8 +2,8 @@
   "files": [],
   "references": [
     { "path": "packages/shared" },
+    { "path": "packages/backend" },
     { "path": "packages/authorizer" },
-    { "path": "packages/middleware" },
-    { "path": "packages/backend" }
+    { "path": "packages/middleware" }
   ]
 }

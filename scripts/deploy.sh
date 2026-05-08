@@ -7,6 +7,9 @@ info()    { echo -e "${GREEN}[deploy]${NC} $*"; }
 warn()    { echo -e "${YELLOW}[deploy]${NC} $*"; }
 error()   { echo -e "${RED}[deploy]${NC} $*" >&2; }
 
+# ── Ensure Homebrew aws takes precedence over asdf shim ───────────────────────
+export PATH="/opt/homebrew/bin:$PATH"
+
 # ── Pre-flight checks ──────────────────────────────────────────────────────────
 info "Running pre-flight checks..."
 
@@ -49,7 +52,7 @@ info "Deploying stack..."
 CDK_DEFAULT_ACCOUNT="${ACCOUNT}" \
 CDK_DEFAULT_REGION="${REGION}" \
 JWT_SECRET="${JWT_SECRET}" \
-pnpm deploy
+pnpm cdk deploy --require-approval never
 
 cd ..
 
