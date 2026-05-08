@@ -5,6 +5,8 @@ import { getItem, queryItems, listItems } from './dynamo-client.js';
 const log = logger.child({ lambda: 'backend' });
 initTracer();
 
+const TABLE_NAME = process.env.TABLE_NAME ?? '';
+
 export async function handler(event: BackendRequest): Promise<BackendResponse> {
   log.info({ operation: event.operation, requesterId: event.requesterId }, 'Backend invoked');
 
@@ -17,15 +19,17 @@ export async function handler(event: BackendRequest): Promise<BackendResponse> {
 
   return context.with(parentContext, async () => {
     try {
-      span?.setAttribute('backend.operation', event.operation);
+      span?.setAttribute('rpc.method', event.operation);
       span?.setAttribute('user.id', event.requesterId);
+      span?.setAttribute('db.dynamodb.table_name', TABLE_NAME);
 
       switch (event.operation) {
         case 'getItem': {
           const pk = event.params.pk as string;
-          span?.setAttribute('dynamo.pk', pk);
+          span?.setAttribute('item.id', pk);
           const item = await getItem(pk);
           if (!item) throw new NotFoundError(`Item ${pk}`);
+          span?.setAttribute('item.category', item.category as string);
           span?.setStatus({ code: SpanStatusCode.OK });
           return { success: true, data: item };
         }
@@ -33,8 +37,9 @@ export async function handler(event: BackendRequest): Promise<BackendResponse> {
         case 'queryItems': {
           const pk = event.params.pk as string;
           const limit = (event.params.limit as number) ?? 20;
-          span?.setAttribute('dynamo.pk', pk);
+          span?.setAttribute('item.id', pk);
           const items = await queryItems(pk, limit);
+          span?.setAttribute('db.result_count', items.length);
           span?.setStatus({ code: SpanStatusCode.OK });
           return { success: true, data: items };
         }
@@ -42,6 +47,7 @@ export async function handler(event: BackendRequest): Promise<BackendResponse> {
         case 'listItems': {
           const limit = (event.params.limit as number) ?? 20;
           const items = await listItems(limit);
+          span?.setAttribute('db.result_count', items.length);
           span?.setStatus({ code: SpanStatusCode.OK });
           return { success: true, data: items };
         }

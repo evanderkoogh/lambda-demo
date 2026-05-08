@@ -16,17 +16,19 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   return context.with(incomingContext, async () => {
     try {
-      span?.setAttribute('http.method', event.httpMethod);
-      span?.setAttribute('http.path', event.path);
+      // Route /items/{id} → getItem, /items → listItems
+      const pathParts = event.path.replace(/^\//, '').split('/');
+      const itemId = pathParts[1]; // present for /items/{id}
+
+      span?.setAttribute('http.request.method', event.httpMethod);
+      span?.setAttribute('url.path', event.path);
+      span?.setAttribute('app.route', itemId ? '/items/{id}' : '/items');
       span?.setAttribute('user.id', userId);
+      if (itemId) span?.setAttribute('item.id', itemId);
 
       // Inject W3C traceparent into BackendRequest for trace propagation
       const traceContext: Record<string, string> = {};
       propagation.inject(context.active(), traceContext);
-
-      // Route /items/{id} → getItem, /items → listItems
-      const pathParts = event.path.replace(/^\//, '').split('/');
-      const itemId = pathParts[1]; // present for /items/{id}
 
       const request: BackendRequest = itemId
         ? { operation: 'getItem', params: { pk: itemId }, requesterId: userId, traceContext }
@@ -35,6 +37,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       const response = await invokeBackend(request);
 
       if (!response.success) {
+        span?.setAttribute('http.response.status_code', 400);
         span?.setStatus({ code: SpanStatusCode.ERROR, message: response.error });
         return {
           statusCode: 400,
@@ -43,6 +46,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
         };
       }
 
+      span?.setAttribute('http.response.status_code', 200);
       span?.setStatus({ code: SpanStatusCode.OK });
       return {
         statusCode: 200,
@@ -51,6 +55,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     } catch (err) {
       log.error({ err }, 'Middleware error');
+      span?.setAttribute('http.response.status_code', 500);
       span?.setStatus({ code: SpanStatusCode.ERROR, message: 'Internal server error' });
       return {
         statusCode: 500,

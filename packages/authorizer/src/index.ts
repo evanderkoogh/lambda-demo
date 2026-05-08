@@ -27,6 +27,7 @@ export async function handler(
       const authContext = validateToken(token);
       log.info({ userId: authContext.userId }, 'Token validated successfully');
       span?.setAttribute('user.id', authContext.userId);
+      span?.setAttribute('user.email', authContext.email);
       span?.setStatus({ code: SpanStatusCode.OK });
 
       return buildPolicy(authContext.userId, 'Allow', event.methodArn, {
