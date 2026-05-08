@@ -30,7 +30,7 @@ export class FrontendDemoStack extends cdk.Stack {
     // --- API Gateway ---
     const api = new apigateway.RestApi(this, 'Api', {
       restApiName: 'frontend-demo-api',
-      description: 'ANZ Frontend Demo API',
+      description: 'ANZ Frontend Demo API - request authorizer',
       deployOptions: {
         stageName: 'prod',
         tracingEnabled: true,
@@ -41,10 +41,10 @@ export class FrontendDemoStack extends cdk.Stack {
       },
     });
 
-    const lambdaAuthorizer = new apigateway.TokenAuthorizer(this, 'LambdaAuthorizer', {
+    const lambdaAuthorizer = new apigateway.RequestAuthorizer(this, 'LambdaAuthorizer', {
       handler: authorizer.fn,
-      identitySource: apigateway.IdentitySource.header('Authorization'),
-      resultsCacheTtl: cdk.Duration.minutes(5),
+      identitySources: [apigateway.IdentitySource.header('Authorization')],
+      resultsCacheTtl: cdk.Duration.seconds(0),
     });
 
     const middlewareIntegration = new apigateway.LambdaIntegration(middleware.fn);

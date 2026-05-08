@@ -1,6 +1,6 @@
-import type { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
+import type { APIGatewayAuthorizerResult, APIGatewayRequestAuthorizerEvent } from 'aws-lambda';
 
-export type { APIGatewayAuthorizerResult, APIGatewayTokenAuthorizerEvent };
+export type { APIGatewayAuthorizerResult, APIGatewayRequestAuthorizerEvent };
 
 export interface AuthorizerContext {
   userId: string;

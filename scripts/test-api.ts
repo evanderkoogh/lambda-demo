@@ -1,5 +1,5 @@
 import { createHmac } from 'crypto';
-import { initTracer, flushTracer, trace, context, propagation, SpanStatusCode } from '../packages/shared/src/tracer.js';
+import { initTracer, flushTracer, context, propagation, SpanStatusCode } from '../packages/shared/src/tracer.js';
 
 process.env.SERVICE_NAME = 'test-script';
 const tracer = initTracer();
@@ -41,6 +41,7 @@ function makeJwt(secret: string): string {
 }
 
 async function get(path: string, token: string): Promise<unknown> {
+  // No active parent span here, so startActiveSpan creates a new root trace
   return tracer.startActiveSpan(`GET ${path}`, async (span) => {
     const url = `${BASE_URL}${path}`;
     console.log(`\nGET ${url}`);
@@ -63,29 +64,18 @@ async function get(path: string, token: string): Promise<unknown> {
       throw err;
     } finally {
       span.end();
+      await flushTracer();
     }
   });
 }
 
 async function main() {
-  await tracer.startActiveSpan('test-run', async (rootSpan) => {
-    try {
-      const token = makeJwt(JWT_SECRET);
-      console.log(`Base URL : ${BASE_URL}`);
-      console.log(`Token    : ${token.slice(0, 40)}…`);
+  const token = makeJwt(JWT_SECRET);
+  console.log(`Base URL : ${BASE_URL}`);
+  console.log(`Token    : ${token.slice(0, 40)}…`);
 
-      await get('/items', token);
-      await get(`/items/${ITEM_ID}`, token);
-
-      rootSpan.setStatus({ code: SpanStatusCode.OK });
-    } catch (err) {
-      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
-      throw err;
-    } finally {
-      rootSpan.end();
-      await flushTracer();
-    }
-  });
+  await get('/items', token);
+  await get(`/items/${ITEM_ID}`, token);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

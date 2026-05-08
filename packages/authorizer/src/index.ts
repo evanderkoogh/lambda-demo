@@ -1,5 +1,5 @@
-import type { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult } from '@frontend-demo/shared';
-import { logger, initTracer, flushTracer, SpanStatusCode } from '@frontend-demo/shared';
+import type { APIGatewayRequestAuthorizerEvent, APIGatewayAuthorizerResult } from '@frontend-demo/shared';
+import { logger, initTracer, flushTracer, propagation, context, SpanStatusCode } from '@frontend-demo/shared';
 import { validateToken } from './token-validator.js';
 import { buildPolicy } from './policy-builder.js';
 
@@ -7,11 +7,15 @@ const log = logger.child({ lambda: 'authorizer' });
 const tracer = initTracer();
 
 export async function handler(
-  event: APIGatewayTokenAuthorizerEvent,
+  event: APIGatewayRequestAuthorizerEvent,
 ): Promise<APIGatewayAuthorizerResult> {
-  return tracer.startActiveSpan('authorizer.handler', async (span) => {
+  // Extract incoming W3C traceparent so the authorizer span links to the caller's trace
+  const incomingContext = propagation.extract(context.active(), event.headers ?? {});
+
+  return context.with(incomingContext, () => tracer.startActiveSpan('authorizer.handler', async (span) => {
     try {
-      const token = event.authorizationToken?.replace(/^Bearer\s+/i, '');
+      const authHeader = event.headers?.Authorization ?? event.headers?.authorization ?? '';
+      const token = authHeader.replace(/^Bearer\s+/i, '');
 
       if (!token) {
         log.warn('No token provided');
@@ -38,5 +42,5 @@ export async function handler(
       span.end();
       await flushTracer();
     }
-  });
+  }));
 }
