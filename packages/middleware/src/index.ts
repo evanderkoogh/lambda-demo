@@ -10,7 +10,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
   const userId = event.requestContext.authorizer?.userId as string;
   log.info({ path: event.path, method: event.httpMethod, userId }, 'Request received');
 
-  return tracer.startActiveSpan('middleware.handler', async (span) => {
+  // Extract incoming W3C traceparent so spans link back to the caller's trace
+  const incomingContext = propagation.extract(context.active(), event.headers ?? {});
+
+  return context.with(incomingContext, () => tracer.startActiveSpan('middleware.handler', async (span) => {
     try {
       span.setAttribute('http.method', event.httpMethod);
       span.setAttribute('http.path', event.path);
@@ -57,5 +60,5 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       span.end();
       await flushTracer();
     }
-  });
+  }));
 }

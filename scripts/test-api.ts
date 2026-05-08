@@ -1,4 +1,8 @@
 import { createHmac } from 'crypto';
+import { initTracer, flushTracer, trace, context, propagation, SpanStatusCode } from '../packages/shared/src/tracer.js';
+
+process.env.SERVICE_NAME = 'test-script';
+const tracer = initTracer();
 
 const LOCAL_URL = `http://127.0.0.1:${process.env.PORT ?? 3001}`;
 const AWS_URL = process.env.AWS_API_URL ?? '';
@@ -37,24 +41,51 @@ function makeJwt(secret: string): string {
 }
 
 async function get(path: string, token: string): Promise<unknown> {
-  const url = `${BASE_URL}${path}`;
-  console.log(`\nGET ${url}`);
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
+  return tracer.startActiveSpan(`GET ${path}`, async (span) => {
+    const url = `${BASE_URL}${path}`;
+    console.log(`\nGET ${url}`);
+
+    // Inject W3C traceparent so the API spans link to this trace
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+    propagation.inject(context.active(), headers);
+
+    try {
+      const res = await fetch(url, { headers });
+      console.log(`→ HTTP ${res.status}`);
+      span.setAttribute('http.status_code', res.status);
+      span.setAttribute('http.url', url);
+      const body = await res.json();
+      console.log(JSON.stringify(body, null, 2));
+      span.setStatus({ code: res.ok ? SpanStatusCode.OK : SpanStatusCode.ERROR });
+      return body;
+    } catch (err) {
+      span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+      throw err;
+    } finally {
+      span.end();
+    }
   });
-  console.log(`→ HTTP ${res.status}`);
-  const body = await res.json();
-  console.log(JSON.stringify(body, null, 2));
-  return body;
 }
 
 async function main() {
-  const token = makeJwt(JWT_SECRET);
-  console.log(`Base URL : ${BASE_URL}`);
-  console.log(`Token    : ${token.slice(0, 40)}…`);
+  await tracer.startActiveSpan('test-run', async (rootSpan) => {
+    try {
+      const token = makeJwt(JWT_SECRET);
+      console.log(`Base URL : ${BASE_URL}`);
+      console.log(`Token    : ${token.slice(0, 40)}…`);
 
-  await get('/items', token);
-  await get(`/items/${ITEM_ID}`, token);
+      await get('/items', token);
+      await get(`/items/${ITEM_ID}`, token);
+
+      rootSpan.setStatus({ code: SpanStatusCode.OK });
+    } catch (err) {
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+      throw err;
+    } finally {
+      rootSpan.end();
+      await flushTracer();
+    }
+  });
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
