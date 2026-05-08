@@ -6,8 +6,9 @@
     "typecheck": "tsc --build && pnpm --filter @frontend-demo/infra typecheck",
     "dev": "bash scripts/start-local.sh",
     "test:api": "tsx --env-file=.env.local scripts/test-api.ts",
+    "test:api:aws": "tsx --env-file=.env.local scripts/test-api.ts --aws",
     "seed": "tsx scripts/seed-dynamo.ts",
-    "deploy": "bash scripts/deploy.sh"
+    "aws:deploy": "bash scripts/deploy.sh"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",

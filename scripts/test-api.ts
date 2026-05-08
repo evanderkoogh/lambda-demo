@@ -1,8 +1,26 @@
 import { createHmac } from 'crypto';
 
-const BASE_URL = process.env.API_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3001}`;
+const LOCAL_URL = `http://127.0.0.1:${process.env.PORT ?? 3001}`;
+const AWS_URL = process.env.AWS_API_URL ?? '';
+
+// First arg: --local | --aws | (omitted → local)
+const targetArg = process.argv[2]?.startsWith('--') ? process.argv[2] : undefined;
+const ITEM_ID = (targetArg ? process.argv[3] : process.argv[2]) ?? 'item-001';
+
+function resolveBaseUrl(): string {
+  if (targetArg === '--aws') {
+    if (!AWS_URL) {
+      console.error('AWS_API_URL is not set in .env.local');
+      process.exit(1);
+    }
+    return AWS_URL.replace(/\/$/, '');
+  }
+  // --local or default
+  return LOCAL_URL;
+}
+
+const BASE_URL = process.env.API_URL ?? resolveBaseUrl();
 const JWT_SECRET = process.env.JWT_SECRET ?? 'local-dev-secret';
-const ITEM_ID = process.argv[2] ?? 'item-001';
 
 function makeJwt(secret: string): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');

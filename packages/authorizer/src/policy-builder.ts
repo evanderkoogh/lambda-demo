@@ -6,6 +6,10 @@ export function buildPolicy(
   resource: string,
   context?: Record<string, string>,
 ): APIGatewayAuthorizerResult {
+  // Wildcard over all methods/routes on this API so the cached policy
+  // covers every endpoint, not just the one that triggered the authorizer.
+  const apiWildcard = resource.replace(/\/[^/]+\/[^/]+$/, '/*/*');
+
   return {
     principalId,
     policyDocument: {
@@ -14,7 +18,7 @@ export function buildPolicy(
         {
           Action: 'execute-api:Invoke',
           Effect: effect,
-          Resource: resource,
+          Resource: apiWildcard,
         },
       ],
     },
