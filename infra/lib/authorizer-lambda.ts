@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface AuthorizerLambdaProps {
   jwtSecret: string;
+  honeycombApiKey: string;
 }
 
 export class AuthorizerLambdaConstruct extends Construct {
@@ -23,6 +24,7 @@ export class AuthorizerLambdaConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_22_X,
       environment: {
         JWT_SECRET: props.jwtSecret,
+        HONEYCOMB_API_KEY: props.honeycombApiKey,
         SERVICE_NAME: 'authorizer',
         NODE_OPTIONS: '--enable-source-maps',
       },

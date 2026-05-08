@@ -1,5 +1,6 @@
 import { Construct } from 'constructs';
 import * as path from 'path';
+import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { fileURLToPath } from 'url';
@@ -8,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface MiddlewareLambdaProps {
   backendFn: lambda.IFunction;
+  honeycombApiKey: string;
 }
 
 export class MiddlewareLambdaConstruct extends Construct {
@@ -23,11 +25,13 @@ export class MiddlewareLambdaConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_22_X,
       environment: {
         BACKEND_FUNCTION_NAME: props.backendFn.functionName,
+        HONEYCOMB_API_KEY: props.honeycombApiKey,
         SERVICE_NAME: 'middleware',
         NODE_OPTIONS: '--enable-source-maps',
         DYNAMODB_ENDPOINT: '',
         TABLE_NAME: '',
       },
+      timeout: cdk.Duration.seconds(15),
       bundling: {
         externalModules: ['@aws-sdk/*'],
         sourceMap: true,

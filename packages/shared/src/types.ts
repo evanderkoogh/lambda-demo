@@ -19,6 +19,7 @@ export interface BackendRequest {
   operation: 'getItem' | 'queryItems' | 'listItems';
   params: Record<string, unknown>;
   requesterId: string;
+  traceContext?: Record<string, string>;
 }
 
 export interface BackendResponse<T = unknown> {

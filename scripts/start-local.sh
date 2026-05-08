@@ -54,17 +54,20 @@ cat > "$ROOT/infra/local-env.json" <<EOF
     "TABLE_NAME": "frontend-demo-table",
     "AWS_ACCESS_KEY_ID": "local",
     "AWS_SECRET_ACCESS_KEY": "local",
-    "DYNAMODB_ENDPOINT": "http://${DYNAMO_IP}:8000"
+    "DYNAMODB_ENDPOINT": "http://${DYNAMO_IP}:8000",
+    "HONEYCOMB_API_KEY": "${HONEYCOMB_API_KEY:-}"
   },
   "frontend-demo-middleware": {
     "BACKEND_FUNCTION_NAME": "frontend-demo-backend",
     "TABLE_NAME": "frontend-demo-table",
     "AWS_ACCESS_KEY_ID": "local",
     "AWS_SECRET_ACCESS_KEY": "local",
-    "DYNAMODB_ENDPOINT": "http://${DYNAMO_IP}:8000"
+    "DYNAMODB_ENDPOINT": "http://${DYNAMO_IP}:8000",
+    "HONEYCOMB_API_KEY": "${HONEYCOMB_API_KEY:-}"
   },
   "frontend-demo-authorizer": {
-    "JWT_SECRET": "${JWT_SECRET:-local-dev-secret}"
+    "JWT_SECRET": "${JWT_SECRET:-local-dev-secret}",
+    "HONEYCOMB_API_KEY": "${HONEYCOMB_API_KEY:-}"
   }
 }
 EOF

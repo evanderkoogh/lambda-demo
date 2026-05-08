@@ -8,11 +8,15 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+export interface BackendLambdaProps {
+  honeycombApiKey: string;
+}
+
 export class BackendLambdaConstruct extends Construct {
   public readonly fn: NodejsFunction;
   public readonly table: dynamodb.Table;
 
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: BackendLambdaProps) {
     super(scope, id);
 
     this.table = new dynamodb.Table(this, 'Table', {
@@ -29,10 +33,12 @@ export class BackendLambdaConstruct extends Construct {
       runtime: lambda.Runtime.NODEJS_22_X,
       environment: {
         TABLE_NAME: this.table.tableName,
+        HONEYCOMB_API_KEY: props.honeycombApiKey,
         SERVICE_NAME: 'backend',
         NODE_OPTIONS: '--enable-source-maps',
         DYNAMODB_ENDPOINT: '',
       },
+      timeout: cdk.Duration.seconds(10),
       bundling: {
         externalModules: ['@aws-sdk/*'],
         sourceMap: true,

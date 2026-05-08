@@ -9,18 +9,22 @@ export class FrontendDemoStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const jwtSecret = process.env.JWT_SECRET ?? 'changeme-set-in-env';
+    const honeycombApiKey = process.env.HONEYCOMB_API_KEY ?? '';
+
     // --- Backend Lambda + DynamoDB ---
-    const backend = new BackendLambdaConstruct(this, 'Backend');
+    const backend = new BackendLambdaConstruct(this, 'Backend', { honeycombApiKey });
 
     // --- Authorizer Lambda ---
-    const jwtSecret = process.env.JWT_SECRET ?? 'changeme-set-in-env';
     const authorizer = new AuthorizerLambdaConstruct(this, 'Authorizer', {
       jwtSecret,
+      honeycombApiKey,
     });
 
     // --- Middleware Lambda ---
     const middleware = new MiddlewareLambdaConstruct(this, 'Middleware', {
       backendFn: backend.fn,
+      honeycombApiKey,
     });
 
     // --- API Gateway ---
