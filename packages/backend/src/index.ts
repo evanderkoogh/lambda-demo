@@ -15,6 +15,7 @@ export async function handler(event: BackendRequest): Promise<BackendResponse> {
   const span = trace.getActiveSpan();
 
   try {
+    span?.updateName(event.operation);
     span?.setAttribute('rpc.method', event.operation);
     span?.setAttribute('user.id', event.requesterId);
     span?.setAttribute('db.dynamodb.table_name', TABLE_NAME);
