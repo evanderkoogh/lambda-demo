@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import type { BackendRequest } from '@frontend-demo/shared';
-import { logger, initTracer, propagation, context, trace, SpanStatusCode } from '@frontend-demo/shared';
+import { logger, initTracer, trace, SpanStatusCode } from '@frontend-demo/shared';
 import { invokeBackend } from './backend-client.js';
 
 const log = logger.child({ lambda: 'middleware' });
@@ -25,14 +25,12 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     span?.setAttribute('user.id', userId);
     if (itemId) span?.setAttribute('item.id', itemId);
 
-    // Inject current span context into BackendRequest.headers so ADOT in the
-    // backend Lambda can extract it and parent frontend-demo-backend correctly.
-    const headers: Record<string, string> = {};
-    propagation.inject(context.active(), headers);
-
+    // AWS SDK instrumentation injects the active client span's traceparent into
+    // ClientContext.Custom when invoking the backend Lambda, so ADOT in the backend
+    // will parent correctly off the invoke client span — no manual injection needed.
     const request: BackendRequest = itemId
-      ? { operation: 'getItem', params: { pk: itemId }, requesterId: userId, headers }
-      : { operation: 'listItems', params: { limit: Number(event.queryStringParameters?.limit ?? 20) }, requesterId: userId, headers };
+      ? { operation: 'getItem', params: { pk: itemId }, requesterId: userId }
+      : { operation: 'listItems', params: { limit: Number(event.queryStringParameters?.limit ?? 20) }, requesterId: userId };
 
     const response = await invokeBackend(request);
 

@@ -2,7 +2,7 @@ import { NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trac
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import { trace, context, propagation, SpanStatusCode, type Tracer } from '@opentelemetry/api';
+import { trace, context, propagation, SpanStatusCode, SpanKind, type Tracer } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { AwsInstrumentation } from '@opentelemetry/instrumentation-aws-sdk';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -86,4 +86,4 @@ export async function flushTracer(): Promise<void> {
   ]);
 }
 
-export { trace, context, propagation, SpanStatusCode };
+export { trace, context, propagation, SpanStatusCode, SpanKind };

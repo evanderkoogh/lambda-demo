@@ -1,6 +1,6 @@
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import type { BackendRequest, BackendResponse } from '@frontend-demo/shared';
-import { BackendInvocationError } from '@frontend-demo/shared';
+import { BackendInvocationError, context, propagation, trace, SpanKind, SpanStatusCode } from '@frontend-demo/shared';
 
 const IS_LOCAL = process.env.AWS_SAM_LOCAL === 'true';
 const BACKEND_FUNCTION_NAME = process.env.BACKEND_FUNCTION_NAME!;
@@ -19,18 +19,44 @@ export async function invokeBackend<T>(request: BackendRequest): Promise<Backend
     return handler(request) as Promise<BackendResponse<T>>;
   }
 
-  const result = await getLambdaClient().send(
-    new InvokeCommand({
-      FunctionName: BACKEND_FUNCTION_NAME,
-      InvocationType: 'RequestResponse',
-      Payload: Buffer.from(JSON.stringify(request)),
-    }),
-  );
+  // Create an explicit client span before injecting traceparent into the payload.
+  // The AWS SDK auto-instrumentation creates its span only when send() is called,
+  // which is too late — the payload is already built by then. By injecting from
+  // within this span's context, the backend server span parents off this span
+  // rather than the middleware server span.
+  const span = trace.getTracer('middleware').startSpan('invoke backend', {
+    kind: SpanKind.CLIENT,
+    attributes: {
+      'faas.invoked_name': BACKEND_FUNCTION_NAME,
+      'faas.invoked_provider': 'aws',
+    },
+  });
+  const ctx = trace.setSpan(context.active(), span);
 
-  if (result.FunctionError) {
-    throw new BackendInvocationError(`Backend Lambda error: ${result.FunctionError}`);
+  const headers: Record<string, string> = {};
+  propagation.inject(ctx, headers);
+
+  try {
+    const result = await context.with(ctx, () =>
+      getLambdaClient().send(
+        new InvokeCommand({
+          FunctionName: BACKEND_FUNCTION_NAME,
+          InvocationType: 'RequestResponse',
+          Payload: Buffer.from(JSON.stringify({ ...request, headers })),
+        }),
+      ),
+    );
+
+    span.end();
+
+    if (result.FunctionError) {
+      throw new BackendInvocationError(`Backend Lambda error: ${result.FunctionError}`);
+    }
+
+    return JSON.parse(Buffer.from(result.Payload!).toString()) as BackendResponse<T>;
+  } catch (err) {
+    span.setStatus({ code: SpanStatusCode.ERROR });
+    span.end();
+    throw err;
   }
-
-  const payload = JSON.parse(Buffer.from(result.Payload!).toString()) as BackendResponse<T>;
-  return payload;
 }
