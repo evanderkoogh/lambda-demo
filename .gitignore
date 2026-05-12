@@ -10,3 +10,6 @@ dist/
 !.env.example
 .DS_Store
 .mcp.json
+.claude/
+*.d.ts.map
+infra/local-env.json
