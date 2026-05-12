@@ -21,7 +21,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     span?.setAttribute('http.request.method', event.httpMethod);
     span?.setAttribute('url.path', event.path);
-    span?.setAttribute('app.route', itemId ? '/items/{id}' : '/items');
+    span?.setAttribute('http.route', itemId ? '/items/{id}' : '/items');
     span?.setAttribute('user.id', userId);
     if (itemId) span?.setAttribute('item.id', itemId);
 
