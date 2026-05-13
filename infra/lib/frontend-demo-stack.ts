@@ -33,7 +33,7 @@ export class FrontendDemoStack extends cdk.Stack {
       description: 'ANZ Frontend Demo API - request authorizer',
       deployOptions: {
         stageName: 'prod',
-        tracingEnabled: true,
+        tracingEnabled: false,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
